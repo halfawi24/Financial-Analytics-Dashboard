@@ -11,7 +11,7 @@ import {
 import { KPIStrip } from '@/components/enterprise/kpi-strip';
 import { MetricGrid } from '@/components/enterprise/metric-cards';
 import { FileUploadCardEnhanced } from '@/components/enterprise/file-upload-card-enhanced';
-import { DataGrid } from '@/components/enterprise/data-grid';
+
 import { ScenarioComparison } from '@/components/enterprise/scenario-comparison';
 import { ExportPanel } from '@/components/enterprise/export-panel';
 import { AssumptionsPanelEnhanced } from '@/components/enterprise/assumptions-panel-enhanced';
@@ -22,18 +22,11 @@ import {
   FileUp, 
   BarChart3, 
   Settings, 
-  Download,
-  ChevronDown,
-  ChevronUp,
   Menu,
   X,
 } from 'lucide-react';
 
-interface CollapsibleSection {
-  id: string;
-  title: string;
-  isOpen: boolean;
-}
+
 
 export default function Dashboard() {
   const [mounted, setMounted] = useState(false);
@@ -42,21 +35,34 @@ export default function Dashboard() {
   const [extractedData, setExtractedData] = useState<Partial<FinancialAssumptions> | undefined>(undefined);
   const [activeNav, setActiveNav] = useState<'overview' | 'forecast' | 'analysis' | 'files' | 'settings'>('overview');
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [sections, setSections] = useState<CollapsibleSection[]>([
-    { id: 'overview', title: '📊 Financial Overview', isOpen: true },
-    { id: 'cashflow', title: '💰 Cash Flow Analysis', isOpen: true },
-    { id: 'revenue', title: '📈 Revenue & Profitability', isOpen: true },
-    { id: 'workingcap', title: '⏱️ Working Capital', isOpen: false },
-    { id: 'scenarios', title: '🔄 Scenario Comparison', isOpen: false },
-    { id: 'data', title: '📋 Financial Data Table', isOpen: false },
-    { id: 'fileupload', title: '📁 File Import', isOpen: false },
-    { id: 'export', title: '⬇️ Export Reports', isOpen: false },
-    { id: 'assumptions', title: '⚙️ Assumptions', isOpen: false },
-  ]);
+  const [showSuccessMessage, setShowSuccessMessage] = useState(false);
 
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  // Handle automatic dashboard population when file is imported
+  const handleAssumptionsExtracted = (newAssumptions: Partial<FinancialAssumptions>) => {
+    setExtractedData(newAssumptions);
+    
+    // Merge extracted data with existing assumptions
+    const mergedAssumptions: FinancialAssumptions = {
+      ...assumptions,
+      ...Object.fromEntries(
+        Object.entries(newAssumptions).filter(([key, v]) => v !== undefined && v !== null && key)
+      ),
+    };
+    
+    // Auto-apply the extracted assumptions
+    setAssumptions(mergedAssumptions);
+    
+    // Show success message
+    setShowSuccessMessage(true);
+    setTimeout(() => setShowSuccessMessage(false), 4000);
+    
+    // Navigate to overview to show results
+    setActiveNav('overview');
+  };
 
   const monthlyData = useMemo(
     () => calculateMonthlyMetrics(assumptions, scenario),
@@ -65,11 +71,7 @@ export default function Dashboard() {
 
   const insights = useMemo(() => generateInsights(monthlyData, assumptions), [monthlyData, assumptions]);
 
-  const toggleSection = (sectionId: string) => {
-    setSections(sections.map(s => 
-      s.id === sectionId ? { ...s, isOpen: !s.isOpen } : s
-    ));
-  };
+
 
   if (!mounted) {
     return <div className="min-h-screen bg-slate-50" />;
@@ -99,6 +101,9 @@ export default function Dashboard() {
     { label: 'Ending Cash', base: finalMetrics.cash, best: finalMetrics.cash * 1.4, worst: finalMetrics.cash * 0.6, format: 'currency' as const },
     { label: 'DSCR', base: finalMetrics.dscr, best: finalMetrics.dscr * 1.3, worst: finalMetrics.dscr * 0.85, format: 'number' as const },
   ];
+
+  // Display extracted metrics count for confirmation
+  const extractedMetricsCount = Object.keys(extractedData || {}).length;
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -195,127 +200,148 @@ export default function Dashboard() {
               </p>
             </motion.div>
 
-            {/* Collapsible Sections */}
+            {/* Content Sections Based on Active Navigation */}
             <div className="space-y-4">
-              {sections.map((section, idx) => {
-                const isOpen = section.isOpen;
-                
-                return (
-                  <motion.div
-                    key={section.id}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: idx * 0.03 }}
-                    className="card"
-                  >
-                    <button
-                      onClick={() => toggleSection(section.id)}
-                      className="w-full flex items-center justify-between p-4 hover:bg-slate-50 transition-colors"
-                    >
-                      <h2 className="text-lg font-bold text-slate-900">{section.title}</h2>
-                      {isOpen ? (
-                        <ChevronUp className="h-5 w-5 text-slate-400" />
-                      ) : (
-                        <ChevronDown className="h-5 w-5 text-slate-400" />
-                      )}
-                    </button>
+              {/* Overview Section */}
+              {activeNav === 'overview' && (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="space-y-4"
+                >
+                  <div className="card p-4">
+                    <h2 className="text-2xl font-bold text-slate-900 mb-6">Financial Overview</h2>
+                    <MetricGrid metrics={overviewMetrics} />
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+                      <div className="card">
+                        <h4 className="text-md font-bold text-slate-900 mb-4">Revenue Trend</h4>
+                        <RevenueTrendChart data={monthlyData} height={250} />
+                      </div>
+                      <div className="card">
+                        <h4 className="text-md font-bold text-slate-900 mb-4">Cash Flow Trend</h4>
+                        <CashFlowTrendChart data={monthlyData} height={250} />
+                      </div>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
 
-                    {isOpen && (
+              {/* Forecasting Section */}
+              {activeNav === 'forecast' && (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="space-y-4"
+                >
+                  <div className="card p-4">
+                    <h2 className="text-2xl font-bold text-slate-900 mb-6">Forecasting & Scenarios</h2>
+                    <div className="mb-6">
+                      <h3 className="text-lg font-bold text-slate-900 mb-4">Scenario Analysis</h3>
+                      <ScenarioComparison metrics={scenarioMetrics} activeScenario={scenario} />
+                    </div>
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                      <div className="card">
+                        <h4 className="text-md font-bold text-slate-900 mb-4">Revenue Breakdown</h4>
+                        <RevenueBreakdownChart data={monthlyData} height={250} />
+                      </div>
+                      <div className="card">
+                        <h4 className="text-md font-bold text-slate-900 mb-4">Inflow vs Outflow</h4>
+                        <InflowOutflowChart data={monthlyData} height={250} />
+                      </div>
+                      <div className="card">
+                        <h4 className="text-md font-bold text-slate-900 mb-4">Expense Breakdown</h4>
+                        <ExpenseBreakdownChart data={monthlyData} height={250} />
+                      </div>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+
+              {/* Analysis Section */}
+              {activeNav === 'analysis' && (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="space-y-4"
+                >
+                  <div className="card p-4">
+                    <h2 className="text-2xl font-bold text-slate-900 mb-6">Financial Analysis</h2>
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                      <div className="card">
+                        <h4 className="text-md font-bold text-slate-900 mb-4">Inflow vs Outflow</h4>
+                        <InflowOutflowChart data={monthlyData} height={280} />
+                      </div>
+                      <div className="card">
+                        <h4 className="text-md font-bold text-slate-900 mb-4">Revenue Breakdown</h4>
+                        <RevenueBreakdownChart data={monthlyData} height={280} />
+                      </div>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+
+              {/* File Import Section */}
+              {activeNav === 'files' && (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="space-y-4"
+                >
+                  <div className="card p-4">
+                    <h2 className="text-2xl font-bold text-slate-900 mb-6">File Import & Data Upload</h2>
+                    <FileUploadCardEnhanced onAssumptionsExtracted={handleAssumptionsExtracted} />
+                    {showSuccessMessage && (
                       <motion.div
-                        initial={{ height: 0, opacity: 0 }}
-                        animate={{ height: 'auto', opacity: 1 }}
-                        exit={{ height: 0, opacity: 0 }}
-                        className="border-t border-slate-200 p-4 space-y-6"
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0 }}
+                        className="mt-6 p-4 bg-green-50 border border-green-300 rounded-lg shadow-sm"
                       >
-                        {/* Overview Section */}
-                        {section.id === 'overview' && (
-                          <>
-                            <MetricGrid metrics={overviewMetrics} />
-                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                              <div className="card">
-                                <h4 className="text-md font-bold text-slate-900 mb-4">Revenue Trend</h4>
-                                <RevenueTrendChart data={monthlyData} height={250} />
-                              </div>
-                              <div className="card">
-                                <h4 className="text-md font-bold text-slate-900 mb-4">Cash Flow Trend</h4>
-                                <CashFlowTrendChart data={monthlyData} height={250} />
-                              </div>
-                            </div>
-                          </>
-                        )}
-
-                        {/* Cash Flow Analysis */}
-                        {section.id === 'cashflow' && (
-                          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                            <div className="card">
-                              <h4 className="text-md font-bold text-slate-900 mb-4">Inflow vs Outflow</h4>
-                              <InflowOutflowChart data={monthlyData} height={280} />
-                            </div>
-                            <div className="card">
-                              <h4 className="text-md font-bold text-slate-900 mb-4">Revenue Breakdown</h4>
-                              <RevenueBreakdownChart data={monthlyData} height={280} />
-                            </div>
+                        <div className="flex items-center gap-3">
+                          <div className="h-8 w-8 rounded-full bg-green-500 flex items-center justify-center">
+                            <span className="text-white font-bold">✓</span>
                           </div>
-                        )}
-
-                        {/* Revenue & Profitability */}
-                        {section.id === 'revenue' && (
-                          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                            <div className="card">
-                              <h4 className="text-md font-bold text-slate-900 mb-4">Expense Breakdown</h4>
-                              <ExpenseBreakdownChart data={monthlyData} height={280} />
-                            </div>
-                            <div className="card">
-                              <h4 className="text-md font-bold text-slate-900 mb-4">Revenue Trend</h4>
-                              <RevenueTrendChart data={monthlyData} height={280} />
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Working Capital */}
-                        {section.id === 'workingcap' && (
-                          <div className="bg-slate-50 rounded-lg p-4 text-center">
-                            <p className="text-sm text-slate-600">
-                              AR Days: <span className="font-bold text-slate-900">{assumptions.arDays}</span> | 
-                              AP Days: <span className="font-bold text-slate-900">{assumptions.apDays}</span> |
-                              CCC: <span className="font-bold text-slate-900">{assumptions.arDays - assumptions.apDays}</span>
+                          <div>
+                            <p className="text-sm font-semibold text-green-800">Data Extracted Successfully</p>
+                            <p className="text-xs text-green-700 mt-1">
+                              {extractedMetricsCount > 0 
+                                ? `${extractedMetricsCount} parameters loaded. Dashboard updated automatically.`
+                                : 'Dashboard ready with extracted assumptions.'}
                             </p>
                           </div>
-                        )}
-
-                        {/* Scenario Comparison */}
-                        {section.id === 'scenarios' && (
-                          <ScenarioComparison metrics={scenarioMetrics} activeScenario={scenario} />
-                        )}
-
-                        {/* Data Table */}
-                        {section.id === 'data' && (
-                          <DataGrid data={monthlyData} />
-                        )}
-
-                        {/* File Upload */}
-                        {section.id === 'fileupload' && (
-                          <FileUploadCardEnhanced onAssumptionsExtracted={setExtractedData} />
-                        )}
-
-                        {/* Export */}
-                        {section.id === 'export' && (
-                          <ExportPanel scenario={scenario} monthlyData={monthlyData} assumptions={assumptions} />
-                        )}
-
-                        {/* Assumptions */}
-                        {section.id === 'assumptions' && (
-                          <AssumptionsPanelEnhanced 
-                            assumptions={assumptions} 
-                            onChange={setAssumptions}
-                            extractedData={extractedData}
-                          />
-                        )}
+                        </div>
                       </motion.div>
                     )}
-                  </motion.div>
-                );
-              })}
+                  </div>
+                </motion.div>
+              )}
+
+              {/* Settings Section */}
+              {activeNav === 'settings' && (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="space-y-4"
+                >
+                  <div className="card p-4">
+                    <h2 className="text-2xl font-bold text-slate-900 mb-6">Settings & Configuration</h2>
+                    <div className="space-y-6">
+                      <div>
+                        <h3 className="text-lg font-bold text-slate-900 mb-4">Assumptions Editor</h3>
+                        <AssumptionsPanelEnhanced 
+                          assumptions={assumptions} 
+                          onChange={setAssumptions}
+                          extractedData={extractedData}
+                        />
+                      </div>
+                      <div className="border-t border-slate-200 pt-6">
+                        <h3 className="text-lg font-bold text-slate-900 mb-4">Export Options</h3>
+                        <ExportPanel scenario={scenario} monthlyData={monthlyData} assumptions={assumptions} />
+                      </div>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
             </div>
 
             {/* Footer */}

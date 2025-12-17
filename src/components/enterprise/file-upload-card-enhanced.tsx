@@ -34,7 +34,9 @@ export function FileUploadCardEnhanced({ onAssumptionsExtracted }: FileUploadCar
             'application/vnd.ms-excel',
             'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
           ].includes(file.type) &&
-          !file.name.endsWith('.csv')
+          !file.name.endsWith('.csv') &&
+          !file.name.endsWith('.xlsx') &&
+          !file.name.endsWith('.xls')
         ) {
           return { file, status: 'error' as const, error: 'Invalid file type. Use CSV or Excel.' };
         }
@@ -46,31 +48,89 @@ export function FileUploadCardEnhanced({ onAssumptionsExtracted }: FileUploadCar
 
       setUploadedFiles(prev => [...prev, ...validFiles]);
 
-      // Process files and extract assumptions
+      // Process files and extract assumptions via server API
       for (const uploadFile of validFiles) {
         if (uploadFile.status === 'parsing') {
           try {
-            const result = await parseFinancialFile(uploadFile.file);
+            // Send to server extraction API
+            const formData = new FormData();
+            formData.append('file', uploadFile.file);
             
-            // Update file status
+            console.log('📤 Uploading file to extraction API:', uploadFile.file.name);
+            
+            // Try Claude API first (most reliable), fallback to local extraction
+            let result = null;
+            let usedCloud = false;
+            
+            try {
+              // Try cloud extraction first (Claude API)
+              console.log('🌐 Attempting cloud extraction via Claude API...');
+              const cloudResponse = await fetch('/api/extract-file-claude', {
+                method: 'POST',
+                body: formData,
+              });
+              
+              if (cloudResponse.ok) {
+                result = await cloudResponse.json();
+                if (result.success) {
+                  usedCloud = true;
+                  console.log('✓ Cloud extraction successful via Claude API');
+                }
+              }
+            } catch (cloudErr) {
+              console.log('⚠️  Cloud extraction failed, trying local extraction...');
+            }
+            
+            // Fallback to local extraction if cloud failed
+            if (!result || !result.success) {
+              console.log('📦 Attempting local extraction...');
+              // Reset formData for second request
+              const formData2 = new FormData();
+              formData2.append('file', uploadFile.file);
+              
+              const response = await fetch('/api/extract-file', {
+                method: 'POST',
+                body: formData2,
+              });
+
+              if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || `Server error: ${response.status}`);
+              }
+
+              result = await response.json();
+              if (!result.success) {
+                throw new Error(result.error || 'Extraction failed');
+              }
+              console.log('✓ Local extraction successful');
+            }
+
+            console.log('✓ Extraction successful:', result);
+            
+            // Update file status with extracted data
             setUploadedFiles(prev =>
               prev.map(f =>
                 f.file === uploadFile.file
                   ? {
                       ...f,
                       status: 'success' as const,
-                      confidence: result.confidence,
+                      confidence: result.confidence || 0,
                       mappedFields: result.mappedFields,
                     }
                   : f
               )
             );
 
-            // Notify parent component
-            if (onAssumptionsExtracted) {
-              onAssumptionsExtracted(result.assumptions);
+            // Notify parent component with extracted assumptions
+            if (onAssumptionsExtracted && result.assumptions) {
+              const filteredAssumptions = Object.fromEntries(
+                Object.entries(result.assumptions).filter(([key, v]) => v !== undefined && v !== null && key)
+              );
+              console.log('✓ Sending extracted assumptions to dashboard:', filteredAssumptions);
+              onAssumptionsExtracted(filteredAssumptions as Partial<FinancialAssumptions>);
             }
           } catch (error) {
+            console.error('✗ Extraction error:', error);
             setUploadedFiles(prev =>
               prev.map(f =>
                 f.file === uploadFile.file
@@ -206,12 +266,20 @@ export function FileUploadCardEnhanced({ onAssumptionsExtracted }: FileUploadCar
         </motion.div>
       )}
 
-      {/* Info Box */}
-      <div className="mt-6 p-4 bg-teal-50 rounded-lg">
-        <p className="text-xs text-teal-900">
-          💡 <strong>Auto-Extraction:</strong> Our system automatically detects financial fields
-          (Revenue, COGS, OpEx, EBITDA, etc.) and fills your assumptions form. Adjust as needed.
-        </p>
+      {/* Info Box with Enhanced UX */}
+      <div className="mt-6 space-y-3">
+        <div className="p-4 bg-teal-50 rounded-lg border border-teal-200">
+          <p className="text-xs text-teal-900 font-semibold mb-2">🚀 Full Automation Enabled</p>
+          <p className="text-xs text-teal-800 leading-relaxed">
+            <strong>One-Click Import:</strong> Upload your file, and our AI automatically extracts financial data, 
+            calculates metrics, and populates your dashboard. No manual data entry needed. Everything updates in real-time.
+          </p>
+        </div>
+        <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
+          <p className="text-xs text-blue-800">
+            <strong>Supported Formats:</strong> CSV, Excel (.xls, .xlsx) | <strong>Max Size:</strong> 5MB
+          </p>
+        </div>
       </div>
     </motion.div>
   );

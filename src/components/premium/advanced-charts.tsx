@@ -1,12 +1,6 @@
 'use client';
 
 import {
-  LineChart,
-  Line,
-  AreaChart,
-  Area,
-  BarChart,
-  Bar,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -14,6 +8,10 @@ import {
   ResponsiveContainer,
   Legend,
   ComposedChart,
+  Area,
+  Line,
+  Bar,
+  AreaChart,
 } from 'recharts';
 import { motion } from 'framer-motion';
 import { MonthlyMetrics } from '@/lib/financial-engine';

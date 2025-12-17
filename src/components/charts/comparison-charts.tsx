@@ -12,7 +12,6 @@ import {
   PieChart,
   Pie,
   Cell,
-  TooltipProps,
 } from 'recharts';
 
 interface DataPoint {

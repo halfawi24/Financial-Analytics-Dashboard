@@ -6,9 +6,11 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test": "jest --coverage"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.71.2",
     "@radix-ui/react-alert-dialog": "^1.1.15",
     "@radix-ui/react-dialog": "^1.1.15",
     "@radix-ui/react-dropdown-menu": "^2.1.16",
@@ -22,9 +24,14 @@
     "@radix-ui/react-tabs": "^1.1.13",
     "@radix-ui/react-tooltip": "^1.2.8",
     "@react-pdf/renderer": "^4.3.1",
+    "archiver": "^7.0.1",
+    "chokidar": "^5.0.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "color-bits": "^1.1.1",
+    "csv-parse": "^6.1.0",
+    "dotenv": "^17.2.3",
+    "exceljs": "^4.4.0",
     "framer-motion": "^12.23.26",
     "html2pdf": "^0.0.11",
     "jspdf": "^3.0.4",
@@ -33,6 +40,7 @@
     "next": "^16.0.7",
     "next-themes": "^0.4.6",
     "papaparse": "^5.5.3",
+    "pptxgenjs": "^4.0.1",
     "react": "19.2.0",
     "react-dom": "19.2.0",
     "react-dropzone": "^14.3.8",
@@ -40,19 +48,27 @@
     "recharts": "^3.5.1",
     "tailwind-merge": "^3.3.1",
     "tailwindcss-animate": "^1.0.7",
+    "uuid": "^13.0.0",
+    "winston": "^3.19.0",
     "xlsx": "^0.18.5",
+    "yargs": "^17.7.2",
     "zustand": "^5.0.9"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.1",
+    "@types/jest": "^30.0.0",
     "@types/node": "^20",
     "@types/papaparse": "^5.5.1",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "^16.0.7",
+    "jest": "^30.2.0",
     "shadcn": "^2.5.0",
     "tailwindcss": "^4",
+    "ts-jest": "^29.4.6",
     "typescript": "^5"
   }
 }

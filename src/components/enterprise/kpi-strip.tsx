@@ -16,7 +16,7 @@ interface KPIStripProps {
   scenario: 'base' | 'best' | 'worst';
 }
 
-export function KPIStrip({ metrics, scenario }: KPIStripProps) {
+export function KPIStrip({ metrics }: KPIStripProps) {
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: {
@@ -59,7 +59,7 @@ export function KPIStrip({ metrics, scenario }: KPIStripProps) {
     >
       <div className="max-w-full px-4 py-3">
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-          {kpis.map((kpi, idx) => {
+          {kpis.map((kpi) => {
             const Icon = kpi.icon;
             return (
               <motion.div

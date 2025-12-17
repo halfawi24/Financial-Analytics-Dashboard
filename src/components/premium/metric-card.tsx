@@ -1,7 +1,9 @@
 'use client';
 
+import { ComponentType } from 'react';
+import { SVGProps } from 'react';
 import { motion } from 'framer-motion';
-import { ReactNode, ComponentType, SVGProps } from 'react';
+
 
 interface MetricCardProps {
   label: string;
@@ -23,8 +25,6 @@ export function MetricCard({
   trend,
   riskLevel = 'healthy',
   index = 0,
-  color = 'emerald',
-  isFinal = false,
 }: MetricCardProps) {
   const formatValue = () => {
     if (typeof value === 'string') return value;

@@ -111,3 +111,38 @@ export async function exportToPDF(
     throw error;
   }
 }
+
+export async function exportToPPTX(
+  monthlyData: MonthlyMetrics[],
+  scenario: 'base' | 'best' | 'worst',
+  assumptions?: FinancialAssumptions
+) {
+  try {
+    const response = await fetch('/api/export/pptx', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ monthlyData, scenario, assumptions }),
+    });
+
+    if (!response.ok) throw new Error('PPTX export failed');
+
+    const arrayBuffer = await response.arrayBuffer();
+    const blob = new Blob([arrayBuffer], {
+      type: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+    });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `financial-report-${scenario}-case.pptx`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+
+    return true;
+  } catch (error) {
+    console.error('PPTX export error:', error);
+    throw error;
+  }
+}

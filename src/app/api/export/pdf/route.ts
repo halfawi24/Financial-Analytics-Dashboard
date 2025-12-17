@@ -15,7 +15,6 @@ export async function POST(request: NextRequest) {
     // Calculate totals
     const totalRevenue = monthlyData.reduce((sum: number, m: any) => sum + m.revenue, 0);
     const totalEBITDA = monthlyData.reduce((sum: number, m: any) => sum + m.ebitda, 0);
-    const endingCash = monthlyData[monthlyData.length - 1]?.endingCash || 0;
     const margin = totalRevenue > 0 ? (totalEBITDA / totalRevenue * 100).toFixed(1) : '0';
 
     // Generate HTML for PDF

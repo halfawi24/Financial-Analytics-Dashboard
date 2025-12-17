@@ -1,9 +1,9 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { Download, FileJson, FileText, Sheet } from 'lucide-react';
+import { Download, FileJson, FileText, Sheet, Presentation } from 'lucide-react';
 import { useState } from 'react';
-import { exportToCSV, exportToXLSX, exportToPDF } from '@/lib/export-utils';
+import { exportToCSV, exportToXLSX, exportToPDF, exportToPPTX } from '@/lib/export-utils';
 import type { FinancialAssumptions, MonthlyMetrics } from '@/lib/financial-engine';
 
 interface ExportPanelProps {
@@ -16,7 +16,7 @@ export function ExportPanel({ scenario, monthlyData = [], assumptions }: ExportP
   const [exporting, setExporting] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const handleExport = async (format: 'pdf' | 'csv' | 'xlsx') => {
+  const handleExport = async (format: 'pdf' | 'csv' | 'xlsx' | 'pptx') => {
     if (!monthlyData || monthlyData.length === 0) {
       setError('No data available to export');
       return;
@@ -36,6 +36,9 @@ export function ExportPanel({ scenario, monthlyData = [], assumptions }: ExportP
         case 'pdf':
           await exportToPDF(monthlyData, scenario, assumptions);
           break;
+        case 'pptx':
+          await exportToPPTX(monthlyData, scenario, assumptions);
+          break;
       }
     } catch (err) {
       console.error('Export error:', err);
@@ -47,11 +50,18 @@ export function ExportPanel({ scenario, monthlyData = [], assumptions }: ExportP
 
   const exportOptions = [
     {
-      id: 'pdf',
-      label: 'PDF Report',
-      icon: FileText,
-      description: 'Professional PDF with charts and tables',
-      color: 'text-red-600 bg-red-50',
+      id: 'pptx',
+      label: 'PowerPoint Presentation',
+      icon: Presentation,
+      description: 'Executive presentation with slides and charts',
+      color: 'text-orange-600 bg-orange-50',
+    },
+    {
+      id: 'xlsx',
+      label: 'Excel Workbook',
+      icon: Sheet,
+      description: 'Formatted Excel with formulas',
+      color: 'text-green-600 bg-green-50',
     },
     {
       id: 'csv',
@@ -61,11 +71,11 @@ export function ExportPanel({ scenario, monthlyData = [], assumptions }: ExportP
       color: 'text-blue-600 bg-blue-50',
     },
     {
-      id: 'xlsx',
-      label: 'Excel Workbook',
-      icon: Sheet,
-      description: 'Formatted Excel with formulas',
-      color: 'text-green-600 bg-green-50',
+      id: 'pdf',
+      label: 'PDF Report',
+      icon: FileText,
+      description: 'Professional PDF with charts and tables',
+      color: 'text-red-600 bg-red-50',
     },
   ];
 
